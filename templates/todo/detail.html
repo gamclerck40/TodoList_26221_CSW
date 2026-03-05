@@ -14,12 +14,23 @@
   <button class="todoHome">홈으로</button>
 </div>
 
+<!-- axios 라이브러리 CDN 로드 (HTTP 요청을 쉽게 보내기 위한 라이브러리) -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   // HTML 문서가 모두 로드된 후 실행
 
   const todoId = "{{ todo.id }}";
   // Django 템플릿에서 전달된 todo의 id(pk)를 JS 변수에 저장
+
+  // axios 인스턴스 생성
+  const api = axios.create({
+    baseURL: "/",
+    headers: {
+      "Content-Type": "application/json"
+    }
+  });
 
   // CSRF 토큰 가져오는 함수
   function getCookie(name) {
@@ -31,6 +42,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const csrftoken = getCookie("csrftoken");
   // csrftoken 쿠키에서 CSRF 토큰 추출
+
+  // axios 기본 헤더에 CSRF 토큰 설정
+  api.defaults.headers.common["X-CSRFToken"] = csrftoken;
+  api.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+  // Django는 DELETE / POST / PUT 요청 시 CSRF 토큰을 요구하기 때문에
+  // axios 요청 헤더에 X-CSRFToken을 추가해야 403 오류가 발생하지 않음
 
   // 수정 버튼
   const updateBtn = document.querySelector(".todoUpdate");
@@ -44,38 +61,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const deleteBtn = document.querySelector(".todoDelete");
 
   deleteBtn.addEventListener("click", async () => {
-
-    const ok = confirm("정말 삭제하시겠습니까?");
-    // 삭제 여부 확인
-
-    if (!ok) return;
+    // 삭제 버튼 클릭 시 실행
 
     try {
 
-      const res = await fetch(`/todo/api/delete/${todoId}/`, {
-        method: "DELETE",
+      const res = await api.delete(`/todo/viewsets/view/${todoId}/`);
+      // axios를 사용하여 DELETE 요청 전송
+      // Django CSRF 보호 때문에 X-CSRFToken 헤더가 포함되어야 함
 
-        headers: {
-          "X-CSRFToken": csrftoken,
-          // Django에서 요구하는 CSRF 토큰 추가
-          "Accept": "application/json"
-        },
+      console.log(res.data);
+      // 서버 응답 데이터 확인 (DELETE는 보통 데이터 없음)
 
-        credentials: "same-origin"
-        // 쿠키(세션 + CSRF)를 서버로 함께 전송
-      });
-
-      if (!res.ok) throw new Error("삭제 실패");
-
-      // 삭제 성공 시 목록 페이지로 이동
+      // 삭제 성공 후 목록 페이지로 이동
       window.location.href = "/todo/list/";
 
     } catch (err) {
+      console.error(err.response?.data || err.message);
+      // 삭제 중 오류 발생 시 콘솔 출력
 
-      console.error(err);
-      alert("삭제 중 오류가 발생했습니다.");
-
+      alert("삭제 실패");
+      // 사용자에게 실패 메시지 표시
     }
+
   });
 
   // 홈 버튼
@@ -87,4 +94,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 </script>
+
 {% endblock %}

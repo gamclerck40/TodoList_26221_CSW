@@ -31,67 +31,72 @@
 <!-- axios 라이브러리 CDN 로드 (HTTP 요청을 쉽게 보내기 위한 라이브러리) -->
 
 <script>
+/* ✅ ADDED: axios 인스턴스(api) 생성 (create.html에는 기존에 없어서 "api is not defined" 발생) */
 const api = axios.create({
   baseURL: "/",
-  // 모든 API 요청의 기본 URL
-
   headers: {
-    "Content-Type": "application/json",
-    // 서버로 보낼 데이터 형식 지정 (JSON)
+    "Content-Type": "application/json"
   }
+  // axios 인스턴스 생성 (모든 API 요청의 기본 URL 설정)
 });
 
-// CSRF 자동 주입 (Django 필수)
+/* ✅ ADDED: CSRF 토큰 자동 추가 (Django 보안 필수) */
 api.interceptors.request.use(config => {
 
   const csrfToken = document.cookie
     .split("; ")
-    .find(row => row.startsWith("csrftoken"))
+    .find(row => row.startsWith("csrftoken="))
     ?.split("=")[1];
-  // 브라우저 쿠키에서 csrftoken 값을 찾기
+  // 브라우저 쿠키에서 csrftoken 값을 찾아서 추출
 
   if (csrfToken) {
     config.headers["X-CSRFToken"] = csrfToken;
-    // Django가 요구하는 CSRF 토큰을 요청 헤더에 자동 추가
+    // Django에서 요구하는 CSRF 토큰을 요청 헤더에 추가
   }
+
+  config.headers["X-Requested-With"] = "XMLHttpRequest";
+  // Django에서 AJAX 요청임을 명확히 해주는 헤더(권장)
 
   return config;
   // 수정된 요청 설정 반환
 });
 
-
+// id가 "todoCreate"인 버튼 클릭 이벤트 등록
 document.getElementById("todoCreate").addEventListener("click", async () => {
-  // todoCreate 버튼 클릭 시 실행
 
-  try { // 에러가 발생할 수 있는 코드를 실행하는 영역
+  try {
 
-    const res = await api.post("todo/api/create/", {
-      // Todo 생성 API로 POST 요청 전송
-      // 비동기 작업이 끝날 때까지 기다림, 서버 응답이 올 때까지 기다린 후 다음 코드 실행
+    // Todo 생성 API 호출 (POST 요청)
+    // 기존 API 주소(todo/api/create/) 대신 ViewSet API 주소로 변경
+    const res = await api.post("/todo/viewsets/view/", {
 
       name: document.getElementById("name").value,
-      // 입력한 Todo 이름
+      // id="name" 입력칸의 값을 가져와 Todo의 name 필드로 전달
 
       description: document.getElementById("description").value,
-      // 입력한 설명
+      // id="description" 입력칸의 값을 가져와 description 필드로 전달
 
       complete: document.getElementById("complete").checked,
-      // 체크박스 상태 (true / false)
+      // 체크박스 상태(true / false)를 complete 값으로 전달
 
       exp: Number(document.getElementById("exp").value || 0)
-      // 경험치 입력값 (숫자로 변환, 없으면 0)
+      // exp 입력값을 숫자로 변환
+      // 값이 비어 있으면 0으로 처리
     });
 
     console.log(res.data);
-    // 서버에서 받은 응답 데이터 출력
+    // 서버에서 생성된 Todo 데이터 확인
 
-    // 글 저장 후 메인페이지 이동
     window.location.href = "/todo/list/";
+    // List 목록으로 리다이렉트.
 
-  } catch (err) { // 에러가 발생했을 때 처리하는 영역
+  } catch (err) {
+
     console.error(err.response?.data || err.message);
-    // 에러 발생 시 콘솔에 에러 출력
+    // 요청 중 오류 발생 시 콘솔에 에러 출력
+
   }
+
 });
 </script>
 

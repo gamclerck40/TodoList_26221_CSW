@@ -80,7 +80,7 @@ document.getElementById("todoUpdate").addEventListener("click", async () => {
     formData.append("exp", document.getElementById("exp").value || 0);
     // exp 입력값 추가 (값이 없으면 0으로 설정)
 
-    const res = await api.patch(`/todo/api/update/${todoId}/`, formData);
+    const res = await api.patch(`/todo/viewsets/view/${todoId}/`, formData);
     // PATCH 요청으로 Todo 데이터 수정 API 호출
     // formData를 서버로 전송하여 일부 필드만 수정
 
