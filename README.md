@@ -163,3 +163,9 @@ python manage.py runserver
   ![alt text](<스크린샷 2026-03-05 112346.png>)
   ![alt text](<스크린샷 2026-03-05 112355.png>)
   ![alt text](<스크린샷 2026-03-05 112403.png>)
+
+## Django(todoList) 3 viewsets API로 변경
+
+- Viewsets CRUD로 정상 변경
+  - CRUD 각각의 Axios, CSRF토큰 설정 완료.
+- Viewsets에 맞는 Test코드 추가 생성 완료.
