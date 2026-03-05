@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="todoDetail">
+  <p><strong>이름:</strong> {{ todo.name }}</p>
+  <p><strong>설명:</strong> {{ todo.description }}</p>
+  <p><strong>완료 여부:</strong> {{ todo.complete }}</p>
+  <p><strong>작성일:</strong> {{ todo.created_at }}</p>
+</div>
+
+<div class="btnList">
+  <button class="todoUpdate">수정</button>
+  <button class="todoDelete">삭제</button>
+  <button class="todoHome">홈으로</button>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // HTML 문서가 모두 로드된 후 실행
+
+  const todoId = "{{ todo.id }}";
+  // Django 템플릿에서 전달된 todo의 id(pk)를 JS 변수에 저장
+
+  // CSRF 토큰 가져오는 함수
+  function getCookie(name) {
+    const value = document.cookie
+      .split("; ")
+      .find(row => row.startsWith(name + "="));
+    return value ? decodeURIComponent(value.split("=")[1]) : null;
+  }
+
+  const csrftoken = getCookie("csrftoken");
+  // csrftoken 쿠키에서 CSRF 토큰 추출
+
+  // 수정 버튼
+  const updateBtn = document.querySelector(".todoUpdate");
+
+  updateBtn.addEventListener("click", () => {
+    window.location.href = `/todo/update/${todoId}/`;
+    // 해당 todo의 수정 페이지로 이동
+  });
+
+  // 삭제 버튼
+  const deleteBtn = document.querySelector(".todoDelete");
+
+  deleteBtn.addEventListener("click", async () => {
+
+    const ok = confirm("정말 삭제하시겠습니까?");
+    // 삭제 여부 확인
+
+    if (!ok) return;
+
+    try {
+
+      const res = await fetch(`/todo/api/delete/${todoId}/`, {
+        method: "DELETE",
+
+        headers: {
+          "X-CSRFToken": csrftoken,
+          // Django에서 요구하는 CSRF 토큰 추가
+          "Accept": "application/json"
+        },
+
+        credentials: "same-origin"
+        // 쿠키(세션 + CSRF)를 서버로 함께 전송
+      });
+
+      if (!res.ok) throw new Error("삭제 실패");
+
+      // 삭제 성공 시 목록 페이지로 이동
+      window.location.href = "/todo/list/";
+
+    } catch (err) {
+
+      console.error(err);
+      alert("삭제 중 오류가 발생했습니다.");
+
+    }
+  });
+
+  // 홈 버튼
+  const homeBtn = document.querySelector(".todoHome");
+
+  homeBtn.addEventListener("click", () => {
+    window.location.href = "/todo/list/";
+  });
+
+});
+</script>
+{% endblock %}
