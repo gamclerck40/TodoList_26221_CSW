@@ -153,3 +153,13 @@ python manage.py runserver
 이 프로젝트는 단순 Todo 앱이 아닌
 "실무 확장형 Django → DRF → AI → 비동기 구조 학습 프로젝트"입니다.
 ```
+
+---
+
+## Django(todoList) 2 todolist CRUD generic
+
+- 기본 CRUD 생성 및 API 설정 완료
+- CRUD에 대한 Test코드 작동 및 모두 정상 동작 확인 완료.
+  ![alt text](<스크린샷 2026-03-05 112346.png>)
+  ![alt text](<스크린샷 2026-03-05 112355.png>)
+  ![alt text](<스크린샷 2026-03-05 112403.png>)
