@@ -4,6 +4,7 @@
 from ..models import Todo  # 경로변경
 from ..serializers import TodoSerializer  # 경로변경
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 
 # # 전체보기
 # class TodoListAPI(APIView):
@@ -157,17 +158,38 @@ from rest_framework import viewsets
 #         return Response(status=status.HTTP_204_NO_CONTENT)
 #         # 삭제 성공 시 응답 반환 (204 = 성공했지만 반환할 데이터 없음)
 
+# [추가] 페이지네이션 기능을 사용하기 위한 DRF 모듈 import
 
-# Todo CRUD를 하나의 클래스에서 처리하는 ViewSet
+
+# ---------------------------------------------------------
+# Todo ViewSet (CRUD API)
+# ---------------------------------------------------------
 class TodoViewSet(viewsets.ModelViewSet):
 
     queryset = Todo.objects.all().order_by("-created_at")
     # Todo 모델의 모든 데이터를 조회
-    # created_at 기준으로 최신 데이터가 먼저 나오도록 정렬
+    # created_at 기준 내림차순 정렬 → 최신 데이터가 먼저 표시
 
     serializer_class = TodoSerializer
     # Todo 데이터를 JSON으로 변환하거나
-    # JSON 데이터를 검증/저장할 때 사용할 Serializer 지정
+    # JSON 데이터를 검증 및 저장할 때 사용할 Serializer 지정
+
+
+# ---------------------------------------------------------
+# Todo 목록 페이지네이션 설정
+# ---------------------------------------------------------
+class TodoListPagination(PageNumberPagination):
+
+    page_size = 3
+    # 한 페이지에 기본적으로 보여줄 데이터 개수
+
+    page_size_query_param = "page_size"
+    # URL 쿼리 파라미터로 페이지 크기 변경 가능
+    # 예: /todo/viewsets/view/?page_size=5
+
+    max_page_size = 50
+    # 사용자가 설정할 수 있는 최대 페이지 크기 제한
+    # 예: page_size=100 요청 시 최대 50까지만 허용
 
 
 # ModelViewSet을 사용하면 아래 기능이 자동 생성됩니다

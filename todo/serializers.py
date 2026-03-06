@@ -9,15 +9,15 @@ class TodoSerializer(ModelSerializer):
         fields = "__all__"  # 모델의 모든 필드를 자동으로 직렬화합니다.
         read_only_fields = ["created_at", "updated_at"]  # 읽기만 가능
 
-        fields = [
-            "name",
-            "description",
-            "complete",
-            "exp",
-            "completed_at",
-            "created_at",
-            "updated_at",
-        ]
+        # fields = [
+        #     "name",
+        #     "description",
+        #     "complete",
+        #     "exp",
+        #     "completed_at",
+        #     "created_at",
+        #     "updated_at",
+        # ]
 
         # exclude = ["created_at", "updated_at"]
         # 모든 필드를 기본 포함시키고 → 특정 필드만 제외하고 싶을 때
