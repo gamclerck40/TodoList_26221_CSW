@@ -173,5 +173,9 @@ python manage.py runserver
 ## Django(todoList) 5 페이지네이션 추가 ~ 8 템플릿 정리
 
 - DRF Pagination 설정 추가
+  ![alt text](image-1.png)
 - Django 미디어 설정 추가
 - 'accounts' 앱 추가 생성 -> REST_FRAMEWORK 기본 인증/권한 정책을 로그인 필수 버전으로 변경
+  ![alt text](image-2.png)
+  ![alt text](image-3.png)
+  ![alt text](image.png)
