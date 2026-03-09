@@ -24,80 +24,147 @@
     <label for="exp">Experience Points:</label>
     <input type="number" name="exp" id="exp" min="0" value="{{ todo.exp }}">
   </div>
+  <!-- [추가] 현재 이미지 미리보기 -->
+  <div>
+    <label>Current Image:</label><br>
+    {% if todo.image %}
+      <img src="{{ todo.image.url }}" alt="todo image" style="max-width:250px; height:auto;">
+    {% else %}
+      <p>-</p>
+    {% endif %}
+  </div>
 
+  <!-- [추가] 새 이미지 업로드 -->
+  <div>
+    <label for="image">New Image:</label>
+    <input type="file" id="image">
+  </div>
   <button type="button" id="todoUpdate">저장</button>
   <button type="button" onclick="history.back()">취소</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-const api = axios.create({
-  baseURL: "/",
-  // axios 인스턴스 생성 (모든 API 요청의 기본 URL 설정)
-  // Content-Type을 따로 지정하지 않음 → FormData 사용 시 axios가 자동으로 multipart/form-data 설정
-});
+document.addEventListener("DOMContentLoaded", () => {
 
-// CSRF 토큰 자동 추가 (Django 보안 필수)
-api.interceptors.request.use(config => {
+  // 로그인 페이지 URL
+  const LOGIN_PAGE_URL = "/login/";
 
-  const csrfToken = document.cookie
-    .split("; ")
-    .find(row => row.startsWith("csrftoken"))
-    ?.split("=")[1];
-  // 브라우저 쿠키에서 csrftoken 값을 찾아서 추출
-
-  if (csrfToken) {
-    config.headers["X-CSRFToken"] = csrfToken;
-    // Django에서 요구하는 CSRF 토큰을 요청 헤더에 추가
-  }
-
-  return config;
-  // 수정된 요청 설정 반환
-});
+  // Django 템플릿에서 Todo id 가져오기
+  const todoId = "{{ todo.id }}";
 
 
-const todoId = "{{ todo.id }}";
-// Django 템플릿에서 전달된 todo의 id(pk)를 JavaScript 변수로 저장
+  // -----------------------------
+  // axios 인스턴스 생성
+  // withCredentials: 세션 쿠키(sessionid)를 함께 전송
+  // -----------------------------
+  const api = axios.create({
+    baseURL: "/",
+    withCredentials: true,
+  });
 
 
-document.getElementById("todoUpdate").addEventListener("click", async () => {
-  // id가 todoUpdate인 버튼을 클릭하면 실행
+  // -----------------------------
+  // 요청 인터셉터
+  // 모든 axios 요청 전에 실행
+  // CSRF 토큰을 자동으로 헤더에 추가
+  // -----------------------------
+  api.interceptors.request.use(config => {
 
-  try {
+    // 브라우저 쿠키에서 csrftoken 찾기
+    const csrfToken = document.cookie
+      .split("; ")
+      .find(row => row.startsWith("csrftoken="))
+      ?.split("=")[1];
 
-    const formData = new FormData();
-    // FormData 객체 생성 (폼 데이터를 서버로 전송하기 위한 객체)
+    // headers 객체가 없으면 생성
+    config.headers = config.headers || {};
 
-    formData.append("name", document.getElementById("name").value);
-    // name 입력값을 FormData에 추가
+    // CSRF 토큰이 있으면 헤더에 추가
+    if (csrfToken) {
+      config.headers["X-CSRFToken"] = csrfToken;
+    }
 
-    formData.append("description", document.getElementById("description").value);
-    // description 입력값을 FormData에 추가
+    return config;
+  });
 
-    formData.append("complete", document.getElementById("complete").checked);
-    // 체크박스 상태(true / false)를 complete 값으로 추가
 
-    formData.append("exp", document.getElementById("exp").value || 0);
-    // exp 입력값 추가 (값이 없으면 0으로 설정)
+  // -----------------------------
+  // 응답 인터셉터
+  // 인증 실패 시 로그인 페이지로 이동
+  // -----------------------------
+  api.interceptors.response.use(
+    res => res,
+    err => {
 
-    const res = await api.patch(`/todo/viewsets/view/${todoId}/`, formData);
-    // PATCH 요청으로 Todo 데이터 수정 API 호출
-    // formData를 서버로 전송하여 일부 필드만 수정
+      const status = err.response?.status;
 
-    console.log(res.data);
-    // 서버에서 반환된 수정된 데이터 콘솔 출력
+      // 세션이 없거나 권한이 없는 경우
+      if (status === 401 || status === 403) {
+        alert("로그인이 필요합니다.");
+        window.location.href = LOGIN_PAGE_URL;
+      }
 
-    window.location.href = `/todo/detail/${todoId}/`;
-    // 수정이 완료되면 해당 Todo의 상세 페이지로 이동
+      return Promise.reject(err);
+    }
+  );
 
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    // 오류 발생 시 에러 메시지를 콘솔에 출력
 
-    alert("수정 실패");
-    // 사용자에게 수정 실패 알림 표시
-  }
+  // -----------------------------
+  // 저장 버튼 클릭 이벤트
+  // Todo 수정 요청
+  // -----------------------------
+  document.getElementById("todoUpdate").addEventListener("click", async () => {
+    try {
+
+      // FormData 생성 (파일 + 텍스트 함께 전송)
+      const formData = new FormData();
+
+      // 입력값을 FormData에 추가
+      formData.append("name", document.getElementById("name").value);
+      formData.append("description", document.getElementById("description").value);
+
+      // 체크박스 값을 문자열로 변환
+      formData.append(
+        "complete",
+        document.getElementById("complete").checked ? "true" : "false"
+      );
+
+      // exp 값이 없으면 0으로 설정
+      formData.append("exp", document.getElementById("exp").value || 0);
+
+
+      // 새 이미지가 선택된 경우에만 추가
+      const fileInput = document.getElementById("image");
+      if (fileInput.files.length > 0) {
+        formData.append("image", fileInput.files[0]);
+      }
+
+
+      // -----------------------------
+      // PATCH 요청 (부분 수정)
+      // DRF ViewSet의 update() 또는 partial_update() 실행
+      // -----------------------------
+      const res = await api.patch(`/todo/viewsets/view/${todoId}/`, formData);
+
+      // 성공 로그
+      console.log("수정 성공:", res.data);
+
+      // 수정 후 상세 페이지로 이동
+      window.location.href = `/todo/detail/${todoId}/`;
+
+    } catch (err) {
+
+      // 오류 출력
+      console.error("수정 실패:", err.response?.data || err.message);
+
+      // 사용자 알림
+      alert("수정 실패");
+    }
+  });
+
 });
 </script>
+
 
 {% endblock %}

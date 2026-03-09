@@ -28,118 +28,188 @@
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 <script>
-
-/* HTML이 모두 로드된 후 JavaScript 실행 */
 document.addEventListener("DOMContentLoaded", () => {
 
-    /* Axios 인스턴스 생성
-       baseURL을 "/"로 설정하면 같은 Django 서버로 요청을 보냄 */
-    const api = axios.create({
-        baseURL: "/",
-    });
+    // 로그인 페이지 URL (세션이 없을 때 이동)
+    const LOGIN_PAGE_URL = "/login/";
 
-    /* 현재 페이지 번호 저장 */
+    // 현재 페이지 상태 저장
     let currentPage = 1;
 
+    // axios 인스턴스 생성
+    // withCredentials: true → 세션 쿠키(sessionid)를 자동으로 포함
+    const api = axios.create({
+        baseURL: "/",
+        withCredentials: true,
+    });
 
-    /* 특정 페이지의 Todo 목록을 서버에서 가져오는 함수 */
+    // -----------------------------
+    // 요청 인터셉터
+    // 모든 axios 요청 전에 실행됨
+    // CSRF 토큰을 자동으로 헤더에 추가
+    // -----------------------------
+    api.interceptors.request.use(config => {
+
+        // 브라우저 쿠키에서 csrftoken 찾기
+        const csrfToken = document.cookie
+            .split("; ")
+            .find(row => row.startsWith("csrftoken="))
+            ?.split("=")[1];
+
+        // headers 객체가 없으면 생성
+        config.headers = config.headers || {};
+
+        // CSRF 토큰이 존재하면 요청 헤더에 추가
+        if (csrfToken) {
+            config.headers["X-CSRFToken"] = csrfToken;
+        }
+
+        return config;
+    });
+
+    // -----------------------------
+    // 응답 인터셉터
+    // 서버 응답이 401/403이면 로그인 페이지로 이동
+    // -----------------------------
+    api.interceptors.response.use(
+        res => res,
+        err => {
+            const status = err.response?.status;
+
+            // 세션이 없거나 권한이 없는 경우
+            if (status === 401 || status === 403) {
+                console.log("세션 없음/권한 없음 → 로그인 이동");
+                window.location.href = LOGIN_PAGE_URL;
+                return Promise.reject(err);
+            }
+
+            return Promise.reject(err);
+        }
+    );
+
+    // -----------------------------
+    // 특정 페이지의 Todo 목록을 서버에서 가져오는 함수
+    // -----------------------------
     function loadPage(page) {
 
-        /* axios GET 요청 → Django ViewSet API 호출 */
+        // DRF ViewSet API 호출
         api.get(`/todo/viewsets/view/?page=${page}`)
             .then(res => {
 
-                /* axios는 응답 데이터가 res.data 안에 들어있음 */
+                // 서버에서 받은 데이터
                 const data = res.data;
 
-                /* Todo 목록 화면에 출력 */
-                renderTodos(data.data);
+                // Todo 목록 렌더링
+                renderTodos(data.data || data.results || []);
 
-                /* 페이지네이션 UI 업데이트 */
+                // 페이지네이션 UI 업데이트
                 updatePaginationUI(data);
 
-                /* 현재 페이지 상태 업데이트 */
-                currentPage = data.current_page;
+                // 현재 페이지 업데이트
+                currentPage = data.current_page || page;
             })
             .catch(err => console.error("페이지 로드 실패", err));
     }
 
-
-    /* Todo 목록을 HTML에 렌더링하는 함수 */
+    // -----------------------------
+    // Todo 목록을 화면에 출력하는 함수
+    // -----------------------------
     function renderTodos(todos) {
 
-        /* Todo 출력 영역 선택 */
         const container = document.querySelector(".todocontainer");
 
-        /* 기존 내용 초기화 */
+        // 기존 내용 초기화
         container.innerHTML = "";
 
-        /* Todo 데이터를 반복하면서 화면에 출력 */
+        // Todo가 없는 경우 메시지 출력
+        if (!todos || todos.length === 0) {
+            container.innerHTML = "<p>등록된 Todo 없음</p>";
+            return;
+        }
+
+        // Todo 목록 반복 출력
         todos.forEach(todo => {
 
             const div = document.createElement("div");
             div.className = "todo-item";
 
-            /* dataset → HTML 요소에 데이터를 저장하는 속성 */
+            // HTML 요소에 데이터 저장
             div.dataset.id = todo.id;
 
-            /* Todo 정보 표시 */
+            // 이미지 경로 처리
+            const imageSrc = todo.image
+                ? (todo.image.startsWith("http") ? todo.image : `${location.origin}${todo.image}`)
+                : "";
+
+            // Todo 정보 HTML 구성
             div.innerHTML = `
-                <p><strong>이름:</strong> ${todo.name}</p>
-                <p><strong>설명:</strong> ${todo.description}</p>
-                <p><strong>완료 여부:</strong> ${todo.complete}</p>
-                <p><strong>exp:</strong> ${todo.exp}</p>
+                <p><strong>제목:</strong> ${todo.name ?? ""}</p>
+                <p><strong>설명:</strong> ${todo.description ?? ""}</p>
+                <p><strong>완료 여부:</strong> ${(todo.complete ? "완료" : "미완료")}</p>
+                <p><strong>exp:</strong> ${todo.exp ?? 0}</p>
+                ${imageSrc ? `<img src="${imageSrc}" style="max-width:200px;">` : ""}
                 <hr>
             `;
 
-            /* Todo 클릭 시 상세 페이지 이동 */
+            // Todo 클릭 시 상세 페이지로 이동
             div.addEventListener("click", () => {
                 window.location.href = `/todo/detail/${todo.id}/`;
             });
 
-            /* 화면에 Todo 추가 */
+            // 화면에 Todo 추가
             container.appendChild(div);
         });
     }
 
-
-    /* 페이지네이션 UI 업데이트 */
+    // -----------------------------
+    // 페이지네이션 UI 업데이트
+    // -----------------------------
     function updatePaginationUI(data) {
 
-        /* 현재 페이지 / 전체 페이지 표시 */
-        document.getElementById("pageInfo").innerText =
-            `${data.current_page} / ${data.page_count}`;
+        // 현재 페이지
+        const current = data.current_page ?? currentPage ?? 1;
 
-        /* 이전 버튼 활성화 여부 */
-        document.getElementById("prevBtn").disabled = !data.previous;
+        // 전체 페이지 계산
+        const total =
+            data.page_count ??
+            (typeof data.count === "number" && data.results
+                ? Math.ceil(data.count / data.results.length)
+                : "?");
 
-        /* 다음 버튼 활성화 여부 */
-        document.getElementById("nextBtn").disabled = !data.next;
+        // 페이지 정보 표시
+        document.getElementById("pageInfo").innerText = `${current} / ${total}`;
+
+        // 이전/다음 버튼 활성화 여부 설정
+        document.getElementById("prevBtn").disabled = !(data.previous);
+        document.getElementById("nextBtn").disabled = !(data.next);
     }
 
-
-    /* 이전 페이지 버튼 클릭 이벤트 */
+    // -----------------------------
+    // 이전 페이지 버튼 클릭 이벤트
+    // -----------------------------
     document.getElementById("prevBtn").addEventListener("click", () => {
         if (currentPage > 1) loadPage(currentPage - 1);
     });
 
-
-    /* 다음 페이지 버튼 클릭 이벤트 */
+    // -----------------------------
+    // 다음 페이지 버튼 클릭 이벤트
+    // -----------------------------
     document.getElementById("nextBtn").addEventListener("click", () => {
         loadPage(currentPage + 1);
     });
 
-
-    /* Todo 생성 페이지 이동 */
+    // -----------------------------
+    // Todo 생성 페이지 이동
+    // -----------------------------
     document.getElementById("createBtn").addEventListener("click", () => {
         window.location.href = "/todo/create/";
     });
 
-
-    /* 페이지 최초 로딩 시 1페이지 데이터 요청 */
+    // -----------------------------
+    // 페이지 최초 로딩 시 1페이지 데이터 요청
+    // -----------------------------
     loadPage(1);
 
 });
-
 </script>
 {% endblock %}

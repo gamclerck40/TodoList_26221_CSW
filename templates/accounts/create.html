@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container">
+  <h2>Create a New Todo</h2>
+
+    <div>
+      <label for="name">Name:</label>
+      <input type="text" name="name" id="name">
+    </div>
+
+    <div>
+      <label for="description">Description:</label>
+      <textarea name="description" id="description"></textarea>
+    </div>
+
+    <div>
+      <label for="complete">Complete:</label>
+      <input type="checkbox" name="complete" id="complete">
+    </div>
+
+    <div>
+      <label for="exp">Experience Points:</label>
+      <input type="number" name="exp" id="exp" min="0">
+    </div>
+
+    <div>
+      <label for="image">Image:</label>
+      <input type="file" id="image">
+    </div>
+
+    <button type="submit" id="todoCreate">Create</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  // 로그인 페이지 주소
+  const LOGIN_PAGE_URL = "/login/";
+
+  // Todo 생성 API 주소
+  const CREATE_API_URL = "/todo/viewsets/view/";
+
+
+  // 1️⃣ Axios 인스턴스 생성
+  // withCredentials: true → 브라우저의 쿠키(sessionid)를 함께 전송
+  const api = axios.create({
+    baseURL: "/",
+    withCredentials: true,
+  });
+
+
+  // 2️⃣ 요청 인터셉터
+  // 모든 axios 요청이 서버로 보내지기 전에 실행됨
+  api.interceptors.request.use((config) => {
+
+    // 브라우저 쿠키에서 csrftoken 값을 찾기
+    const csrfToken = document.cookie
+      .split("; ")
+      .find(row => row.startsWith("csrftoken="))
+      ?.split("=")[1];
+
+    // headers 객체가 없으면 생성
+    config.headers = config.headers || {};
+
+    // csrftoken이 있으면 요청 헤더에 추가
+    // Django의 CSRF 보호를 통과하기 위해 필요
+    if (csrfToken) {
+      config.headers["X-CSRFToken"] = csrfToken;
+    }
+
+    return config;
+  });
+
+
+  // 3️⃣ 응답 인터셉터
+  // 서버 응답을 받은 후 실행되는 코드
+  api.interceptors.response.use(
+
+    // 정상 응답이면 그대로 반환
+    (res) => res,
+
+    // 에러 응답 처리
+    async (err) => {
+
+      const status = err.response?.status;
+
+      // 인증 실패(401) 또는 권한 없음(403)이면 로그인 페이지로 이동
+      if (status === 401 || status === 403) {
+        console.log("세션 없음/권한 없음 → 로그인 이동");
+        window.location.href = LOGIN_PAGE_URL;
+        return Promise.reject(err);
+      }
+
+      return Promise.reject(err);
+    }
+  );
+
+
+  // 4️⃣ Create 버튼 클릭 이벤트
+  document.getElementById("todoCreate").addEventListener("click", async (e) => {
+
+    // 기본 form submit 동작 방지
+    e.preventDefault();
+
+    try {
+
+      // FormData 객체 생성
+      // 텍스트 데이터 + 파일 데이터를 함께 전송할 수 있음
+      const formData = new FormData();
+
+      // 입력값을 FormData에 추가
+      formData.append("name", document.getElementById("name").value);
+      formData.append("description", document.getElementById("description").value);
+
+      // 체크박스는 true/false 문자열로 전송
+      formData.append(
+        "complete",
+        document.getElementById("complete").checked ? "true" : "false"
+      );
+
+      // exp 값이 없으면 0으로 전송
+      formData.append("exp", document.getElementById("exp").value || "0");
+
+
+      // 이미지 파일 input 요소 가져오기
+      const fileInput = document.getElementById("image");
+
+      // 이미지가 선택된 경우에만 서버로 전송
+      if (fileInput.files.length > 0) {
+        formData.append("image", fileInput.files[0]);
+      }
+
+
+      // Todo 생성 API 호출
+      const res = await api.post(CREATE_API_URL, formData);
+
+      // 성공 로그 출력
+      console.log("생성 성공:", res.data);
+
+      // Todo 목록 페이지로 이동
+      window.location.href = "/todo/list/";
+
+    } catch (err) {
+
+      // 오류 발생 시 콘솔에 출력
+      console.error("생성 실패:", err.response?.data || err.message);
+
+      // 사용자에게 오류 알림
+      alert("생성 실패: 콘솔/네트워크 확인");
+    }
+  });
+
+});
+</script>
+
+{% endblock %}

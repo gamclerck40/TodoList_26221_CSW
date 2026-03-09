@@ -1,0 +1,107 @@
+{% extends "auth_base.html" %}
+
+{% block title %}로그인{% endblock %}
+
+{% block content %}
+<!-- 로그인 화면 카드 영역 -->
+<section class="auth-card">
+  <h2>로그인</h2>
+
+  <!-- 사용자 이름 입력 -->
+  <input id="username" placeholder="username">
+
+  <!-- 비밀번호 입력 -->
+  <input id="password" placeholder="password" type="password">
+
+  <!-- 로그인 버튼 -->
+  <button id="loginBtn">로그인</button>
+
+  <!-- 회원가입 페이지 이동 링크 -->
+  <p style="margin-top:12px;">
+    아직 계정이 없나요? <a href="/signup-page/">회원가입</a>
+  </p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  // ----------------------------------------
+  // axios 인스턴스 생성
+  // baseURL: 모든 API 요청의 기본 경로
+  // withCredentials: 세션 쿠키(sessionid)를 요청에 포함
+  // ----------------------------------------
+  const api = axios.create({
+    baseURL: "/",
+    withCredentials: true
+  });
+
+
+  // ----------------------------------------
+  // axios 요청 인터셉터
+  // 요청을 보내기 전에 CSRF 토큰을 자동으로 추가
+  // Django에서 POST 요청 시 CSRF 검증을 통과하기 위해 필요
+  // ----------------------------------------
+  api.interceptors.request.use(config => {
+
+    // 브라우저 쿠키에서 csrftoken 값 찾기
+    const csrfToken = document.cookie
+      .split("; ")
+      .find(r => r.startsWith("csrftoken="))
+      ?.split("=")[1];
+
+    // headers 객체가 없으면 생성
+    config.headers = config.headers || {};
+
+    // CSRF 토큰이 존재하면 헤더에 추가
+    if (csrfToken) {
+      config.headers["X-CSRFToken"] = csrfToken;
+    }
+
+    // 수정된 요청 설정 반환
+    return config;
+  });
+
+
+  // ----------------------------------------
+  // 로그인 버튼 클릭 이벤트
+  // ----------------------------------------
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+
+    try {
+
+      // 입력 필드에서 사용자 입력 값 가져오기
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+
+      // ----------------------------------------
+      // 로그인 API 요청
+      // POST /api/login/
+      // ----------------------------------------
+      await api.post("/api/login/", {
+        username,
+        password
+      });
+
+
+      // ----------------------------------------
+      // 로그인 성공
+      // Todo 목록 페이지로 이동
+      // ----------------------------------------
+      window.location.href = "/todo/list/";
+
+    } catch (err) {
+
+      // 오류 정보 콘솔 출력 (디버깅용)
+      console.log(err.response?.data || err.message);
+
+      // 사용자에게 실패 메시지 표시
+      alert("로그인 실패");
+    }
+  });
+
+});
+</script>
+{% endblock %}

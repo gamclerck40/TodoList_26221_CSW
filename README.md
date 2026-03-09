@@ -169,3 +169,9 @@ python manage.py runserver
 - Viewsets CRUD로 정상 변경
   - CRUD 각각의 Axios, CSRF토큰 설정 완료.
 - Viewsets에 맞는 Test코드 추가 생성 완료.
+
+## Django(todoList) 5 페이지네이션 추가 ~ 8 템플릿 정리
+
+- DRF Pagination 설정 추가
+- Django 미디어 설정 추가
+- 'accounts' 앱 추가 생성 -> REST_FRAMEWORK 기본 인증/권한 정책을 로그인 필수 버전으로 변경

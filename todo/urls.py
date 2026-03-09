@@ -29,7 +29,7 @@ urlpatterns = [
     # path("api/delete/<int:pk>/", TodoDeleteAPI.as_view(), name="todo_api_delete"),
     # path("api/retrieve/<int:pk>/", TodoRetrieveAPI.as_view(), name="todo_api_retrieve"),
     # 탬플릿View
-    path("list/", TodoListView.as_view(), name="list"),
+    path("list/", TodoListView.as_view(), name="todo_list"),
     path("create/", TodoCreateView.as_view(), name="todo_create"),
     path("detail/<int:pk>/", TodoDetailView.as_view(), name="todo_Detail"),
     path("update/<int:pk>/", TodoUpdateView.as_view(), name="todo_Update"),

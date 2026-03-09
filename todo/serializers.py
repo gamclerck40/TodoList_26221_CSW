@@ -6,8 +6,21 @@ from .models import Todo
 class TodoSerializer(ModelSerializer):
     class Meta:  # 어떤 필드를 JSON으로 변환할지 정하는 설정 공간
         model = Todo
-        fields = "__all__"  # 모델의 모든 필드를 자동으로 직렬화합니다.
-        read_only_fields = ["created_at", "updated_at"]  # 읽기만 가능
+        # 회원가입 폼이 추가됨에 따라 갱신.
+        fields = [
+            "id",
+            "name",
+            "description",
+            "complete",
+            "exp",
+            "image",
+            "created_at",
+            "user",
+        ]
+        read_only_fields = ["user"]
+
+        # fields = "__all__"  # 모델의 모든 필드를 자동으로 직렬화합니다.
+        # read_only_fields = ["created_at", "updated_at"]  # 읽기만 가능
 
         # fields = [
         #     "name",
