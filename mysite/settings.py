@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import environ  # 환경변수 추가
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,32 +115,36 @@ REST_FRAMEWORK = {
 }
 
 REST_FRAMEWORK = {
-    # 인증 방식 설정
-    # API 요청을 보낸 사용자가 누구인지 확인하는 방법
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        # 세션 인증 (Django 로그인 기반)
-        # 브라우저에서 로그인 상태라면 자동 인증됨
+        # 1) JWT 우선
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # 2) 전환기 안전장치(선택): 기존 세션도 허용
+        #    모든 프론트가 JWT로 바뀐 후 제거 가능
         "rest_framework.authentication.SessionAuthentication",
-        # Basic 인증 (아이디/비밀번호를 헤더로 보내는 방식)
-        # 주로 테스트용으로 사용됨 (Postman, curl 등)
-        "rest_framework.authentication.BasicAuthentication",
     ],
-    # 기본권한 설정: 누구나 API에 접근 가능(개발시 사용)
+    # 실무 기본: 기본은 잠그고, 인증/회원가입 뷰만 AllowAny로 예외 처리
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",  # .AllowAny (누구나 접근 가능)
+        "rest_framework.permissions.IsAuthenticated",
     ],
-    # 기본 페이지네이션 설정
+    # 페이지 네이션
     "DEFAULT_PAGINATION_CLASS": "todo.pagination.CustomPageNumberPagination",
     "PAGE_SIZE": 3,
-    # API응답형식
     "DEFAULT_RENDERER_CLASSES": [
-        # JSON 형식 응답 (프론트엔드 / API 사용 시 기본)
         "rest_framework.renderers.JSONRenderer",
-        # DRF 브라우저 API 화면 제공 (개발/테스트용)
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
 }
 
+SIMPLE_JWT = {
+    # access는 짧게(보안), refresh는 길게(편의)
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Authorization: Bearer <token>
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # (5~6단계에서 다룰 것들 - 지금은 False로 두고 시작 권장)
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": False,
+}
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 

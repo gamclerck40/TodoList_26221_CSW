@@ -1,78 +1,93 @@
 <div class="header">
-    <h1>
-	<a href="{% url 'todo:todo_list' %}" style="text-decoration:none; color:inherit;">
-	Todo 서비스
-	</a>
-	</h1>
+  <h1>
+    <a href="{% url 'todo:todo_list' %}" style="text-decoration:none; color:inherit;">
+      Todo 서비스
+    </a>
+  </h1>
 
-    <div>
-        {% if request.user.is_authenticated %}
-            <span>{{ request.user.username }}님 환영합니다</span>
+  <div>
+    <!-- ✅ [삭제됨] 기존: Django 템플릿 인증 분기(request.user.is_authenticated) -->
+    <!--
+    {% if request.user.is_authenticated %}
+        <span>{{ request.user.username }}님 환영합니다</span>
+        <button id="logoutBtn">로그아웃</button>
+    {% else %}
+        <a href="/login/">로그인</a>
+        <a href="/signup-page/">회원가입</a>
+    {% endif %}
+    -->
 
-            <button id="logoutBtn">로그아웃</button>
+    <!-- ✅ [수정됨] 변경: JWT 기준으로 "JS가 토글"할 영역을 미리 만들어둠 -->
+    <!-- ✅ JWT 기준: JS로 토글할 영역 -->
+    <span id="authWelcome" style="display:none;"></span>
+    <!-- ✅ [추가됨] 환영/상태 표시 -->
 
-        {% else %}
-            <a href="/login/">로그인</a>
-            <a href="/signup-page/">회원가입</a>
-        {% endif %}
-    </div>
+    <button id="logoutBtn" style="display:none;">로그아웃</button>
+    <!-- ✅ [수정됨] 기본 숨김 처리(display:none) -->
+
+
+    <!-- ✅ [추가됨] 로그인/회원가입 링크도 JS로 토글 -->
+    <a id="loginLink" href="/login/" style="display:none;">로그인</a>
+    <a id="signupLink" href="/signup-page/" style="display:none;">회원가입</a>
+  </div>
 </div>
 
 <hr>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    // 로그아웃 버튼 요소 가져오기
-    const btn = document.getElementById("logoutBtn");
+  // ✅ [추가됨] 토큰 키 상수화 (다른 페이지들과 통일)
+  const ACCESS_KEY = "access_token";
+  const REFRESH_KEY = "refresh_token";
 
-    // 버튼이 없는 페이지에서는 코드 실행 중단
-    if (!btn) return;
-
-
-    // -----------------------------
-    // CSRF 토큰을 쿠키에서 가져오는 함수
-    // Django에서 POST 요청 시 CSRF 검증에 필요
-    // -----------------------------
-    function getCSRF() {
-        return document.cookie
-            .split("; ")
-            .find(row => row.startsWith("csrftoken="))
-            ?.split("=")[1];
-    }
+  // ✅ [수정됨] 기존에는 logoutBtn만 찾아서 있으면 클릭 이벤트만 붙였음
+  // const btn = document.getElementById("logoutBtn");
+  // ❌ [삭제됨] 아래에서 logoutBtn으로 다시 받음
 
 
-    // -----------------------------
-    // 로그아웃 버튼 클릭 이벤트
-    // -----------------------------
-    btn.addEventListener("click", async () => {
-        try {
+  // ✅ [추가됨] 현재 access 토큰 존재 여부로 로그인 상태 판단
+  const access = localStorage.getItem(ACCESS_KEY);
 
-            // axios POST 요청 → 로그아웃 API 호출
-            await axios.post("/api/logout/", {}, {
+  // ✅ [추가됨] 토글 대상 DOM 요소들
+  const welcomeEl = document.getElementById("authWelcome");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const loginLink = document.getElementById("loginLink");
+  const signupLink = document.getElementById("signupLink");
 
-                // 세션 쿠키(sessionid)를 요청에 포함
-                withCredentials: true,
+  // ✅ [삭제됨] 기존: logoutBtn이 없으면 return (이제는 loginLink 등도 다루므로 단순 return 제거)
+  // const btn = document.getElementById("logoutBtn");
+  // if (!btn) return;
 
-                // Django CSRF 보호를 통과하기 위한 헤더
-                headers: {
-                    "X-CSRFToken": getCSRF()
-                }
-            });
+  // ✅ [추가됨] 토큰 있으면: 로그아웃/환영 표시 + 로그인/회원가입 숨김
+  if (access) {
+    // ✅ [수정됨] 기존: "{{ request.user.username }}님 환영합니다"를 서버가 출력
+    // ✅ 변경: (3단계에서는 username을 토큰에서 꺼내지 않으므로) 일단 "로그인됨" 표시
+    // (3단계에서는 username까지는 안 뽑아도 됨 — 7단계에서 정리)
+    welcomeEl.textContent = "로그인됨";
+    welcomeEl.style.display = "inline-block";
+    logoutBtn.style.display = "inline-block";
 
-            // 로그아웃 성공 후 로그인 페이지로 이동
-            window.location.href = "/login/";
+    loginLink.style.display = "none";
+    signupLink.style.display = "none";
 
-            // 다른 페이지로 이동하고 싶으면 아래 사용 가능
-            // window.location.href = "/todo/list/";
+    // ✅ [수정됨] 기존: btn.addEventListener(...) → logoutBtn에 이벤트 부착
+    logoutBtn.addEventListener("click", () => {
+      // ✅ JWT 로그아웃 = 토큰 삭제
+      localStorage.removeItem(ACCESS_KEY); //✅[수정됨]기존 문자열 하드코딩→상수사용
+      localStorage.removeItem(REFRESH_KEY);//✅[수정됨] 기존 문자열 하드코딩→상수사용
 
-        } catch (err) {
-
-            // 오류 발생 시 콘솔에 출력
-            console.log(err.response?.data || err.message);
-
-            // 사용자에게 실패 메시지 표시
-            alert("로그아웃 실패");
-        }
+      // 로그인 페이지로 이동
+      window.location.href = "/login/";
     });
+
+  } else {
+    // ✅ [추가됨] 토큰 없으면: 로그인/회원가입 표시 + 로그아웃/환영 숨김
+    welcomeEl.style.display = "none";
+    logoutBtn.style.display = "none";
+
+    loginLink.style.display = "inline-block";
+    signupLink.style.display = "inline-block";
+  }
 });
 </script>

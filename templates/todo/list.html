@@ -2,146 +2,137 @@
 {% load static %}
 {% block content %}
 
-<div class="todocontainer">
-    <!-- {% for todo in todos %}
-        <div class="todo-item" data-id="{{ todo.id }}">
-            <p><strong>이름:</strong> {{ todo.name }}</p>
-            <p><strong>설명:</strong> {{ todo.description }}</p>
-            <p><strong>완료 여부:</strong> {{ todo.complete }}</p>
-            <p><strong>작성일:</strong>
-            {{ todo.created_at|date:"Y-m-d H:i" }}</p>
+<div class="todocontainer"></div>
 
-            <hr>
-        </div>
-    {% empty %}
-        <p>등록된 할 일이 없습니다.</p>
-    {% endfor %} -->
-</div>
 <div class="pagination">
-	<button id="prevBtn">이전</button>
-	<span id="pageInfo"></span>
-	<button id="nextBtn">다음</button>
+    <button id="prevBtn">이전</button>
+    <span id="pageInfo"></span>
+    <button id="nextBtn">다음</button>
 </div>
-<button class="todoCreate" id="createBtn">Todo 등록하기</button>
 
-<!-- Axios 라이브러리 CDN 로드 (HTTP 요청을 쉽게 보내기 위한 라이브러리) -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<button id="createBtn">Todo 등록하기</button>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    // 로그인 페이지 URL (세션이 없을 때 이동)
-    const LOGIN_PAGE_URL = "/login/";
+    const LOGIN_PAGE_URL = "/login/"; // ✅ (유지) 로그인 페이지 URL
+    let currentPage = 1;              // ✅ (유지)
 
-    // 현재 페이지 상태 저장
-    let currentPage = 1;
-
-    // axios 인스턴스 생성
-    // withCredentials: true → 세션 쿠키(sessionid)를 자동으로 포함
+    // ✅ [삭제됨] 기존: 세션 쿠키 기반 axios 인스턴스 생성
+    /*
     const api = axios.create({
         baseURL: "/",
         withCredentials: true,
     });
+    */
 
-    // -----------------------------
-    // 요청 인터셉터
-    // 모든 axios 요청 전에 실행됨
-    // CSRF 토큰을 자동으로 헤더에 추가
-    // -----------------------------
+    // ✅ [삭제됨] 기존: CSRF 자동 주입 (세션 기반에서 POST/PATCH/DELETE에 필요)
+    /*
     api.interceptors.request.use(config => {
-
-        // 브라우저 쿠키에서 csrftoken 찾기
         const csrfToken = document.cookie
             .split("; ")
             .find(row => row.startsWith("csrftoken="))
             ?.split("=")[1];
 
-        // headers 객체가 없으면 생성
         config.headers = config.headers || {};
-
-        // CSRF 토큰이 존재하면 요청 헤더에 추가
         if (csrfToken) {
             config.headers["X-CSRFToken"] = csrfToken;
         }
-
         return config;
     });
+    */
 
-    // -----------------------------
-    // 응답 인터셉터
-    // 서버 응답이 401/403이면 로그인 페이지로 이동
-    // -----------------------------
+    // ✅ [삭제됨] 기존: 세션 없으면(401/403) 로그인으로 보내는 response interceptor
+    /*
     api.interceptors.response.use(
         res => res,
         err => {
             const status = err.response?.status;
-
-            // 세션이 없거나 권한이 없는 경우
             if (status === 401 || status === 403) {
                 console.log("세션 없음/권한 없음 → 로그인 이동");
                 window.location.href = LOGIN_PAGE_URL;
                 return Promise.reject(err);
             }
-
             return Promise.reject(err);
         }
     );
+    */
 
-    // -----------------------------
-    // 특정 페이지의 Todo 목록을 서버에서 가져오는 함수
-    // -----------------------------
-    function loadPage(page) {
-
-        // DRF ViewSet API 호출
-        api.get(`/todo/viewsets/view/?page=${page}`)
-            .then(res => {
-
-                // 서버에서 받은 데이터
-                const data = res.data;
-
-                // Todo 목록 렌더링
-                renderTodos(data.data || data.results || []);
-
-                // 페이지네이션 UI 업데이트
-                updatePaginationUI(data);
-
-                // 현재 페이지 업데이트
-                currentPage = data.current_page || page;
-            })
-            .catch(err => console.error("페이지 로드 실패", err));
+    // ✅ [수정됨] 이제 세션 기반 api가 아니라, 공통 axios 인스턴스(window.api) 사용
+    // ✅ 3단계: 공통 axios 인스턴스(window.api) 사용
+    if (!window.api) { // ✅ [추가됨] window.api 존재 확인
+        console.error("window.api가 없습니다. base.html에서 static/js/api.js가 로드됐는지 확인하세요.");
+        alert("설정 오류: api.js가 로드되지 않았습니다.");
+        return;
     }
 
-    // -----------------------------
-    // Todo 목록을 화면에 출력하는 함수
-    // -----------------------------
+    // ✅ [추가됨] JWT access 토큰이 없으면 바로 로그인 이동(선택 로직)
+    // (토큰이 있는데 만료된 경우는 401에서 처리)
+    const access = localStorage.getItem("access_token");
+    if (!access) {
+        console.log("access_token 없음 → 로그인 이동");
+        window.location.href = LOGIN_PAGE_URL;
+        return;
+    }
+
+    // ✅ [추가됨] 401/403 처리 로직을 함수로 분리 (기존 interceptor 대체)
+    // ✅ 응답에서 401/403이면 로그인으로 (3단계용: refresh 자동화는 5단계에서)
+    function handleAuthError(err) {
+        const status = err.response?.status;
+        if (status === 401 || status === 403) {
+            console.log("인증 실패(401/403) → 토큰 삭제 후 로그인 이동");
+
+            // ✅ [추가됨] 토큰 정리(선택)
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+
+            window.location.href = LOGIN_PAGE_URL;
+        }
+        return Promise.reject(err);
+    }
+
+    function loadPage(page) {
+        // ✅ [수정됨] 기존: api.get(...) → 세션 기반
+        // api.get(`/todo/viewsets/view/?page=${page}`)  // ❌ [삭제됨]
+
+        // ✅ [수정됨] 변경: window.api.get(...) → JWT 토큰 기반
+        // ✅ 이제 api.js에서 Authorization: Bearer <access_token> 자동 부착됨
+        window.api.get(`/todo/viewsets/view/?page=${page}`)
+            .then(res => {
+                const data = res.data;
+
+                renderTodos(data.data || data.results || []);
+                updatePaginationUI(data);
+
+                currentPage = data.current_page || page;
+            })
+            .catch(err => {
+                // ✅ [수정됨] 기존: console.error("페이지 로드 실패", err) 단순 처리
+                // ✅ 변경: 인증 오류면 handleAuthError로 로그인 이동 처리
+                handleAuthError(err).catch(() => {}); // ✅ [추가됨] 인증 실패 처리
+                console.error("페이지 로드 실패", err.response?.data || err.message); // ✅ [수정됨] 로그 더 자세히
+            });
+    }
+
     function renderTodos(todos) {
-
         const container = document.querySelector(".todocontainer");
-
-        // 기존 내용 초기화
         container.innerHTML = "";
 
-        // Todo가 없는 경우 메시지 출력
         if (!todos || todos.length === 0) {
             container.innerHTML = "<p>등록된 Todo 없음</p>";
             return;
         }
 
-        // Todo 목록 반복 출력
         todos.forEach(todo => {
-
             const div = document.createElement("div");
             div.className = "todo-item";
-
-            // HTML 요소에 데이터 저장
             div.dataset.id = todo.id;
 
-            // 이미지 경로 처리
+            // ✅ 이미지 표시 로직은 그대로 유지
             const imageSrc = todo.image
                 ? (todo.image.startsWith("http") ? todo.image : `${location.origin}${todo.image}`)
                 : "";
 
-            // Todo 정보 HTML 구성
             div.innerHTML = `
                 <p><strong>제목:</strong> ${todo.name ?? ""}</p>
                 <p><strong>설명:</strong> ${todo.description ?? ""}</p>
@@ -151,65 +142,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 <hr>
             `;
 
-            // Todo 클릭 시 상세 페이지로 이동
             div.addEventListener("click", () => {
                 window.location.href = `/todo/detail/${todo.id}/`;
             });
 
-            // 화면에 Todo 추가
             container.appendChild(div);
         });
     }
 
-    // -----------------------------
-    // 페이지네이션 UI 업데이트
-    // -----------------------------
     function updatePaginationUI(data) {
-
-        // 현재 페이지
         const current = data.current_page ?? currentPage ?? 1;
-
-        // 전체 페이지 계산
         const total =
             data.page_count ??
             (typeof data.count === "number" && data.results
                 ? Math.ceil(data.count / data.results.length)
                 : "?");
 
-        // 페이지 정보 표시
         document.getElementById("pageInfo").innerText = `${current} / ${total}`;
 
-        // 이전/다음 버튼 활성화 여부 설정
         document.getElementById("prevBtn").disabled = !(data.previous);
         document.getElementById("nextBtn").disabled = !(data.next);
     }
 
-    // -----------------------------
-    // 이전 페이지 버튼 클릭 이벤트
-    // -----------------------------
     document.getElementById("prevBtn").addEventListener("click", () => {
         if (currentPage > 1) loadPage(currentPage - 1);
     });
 
-    // -----------------------------
-    // 다음 페이지 버튼 클릭 이벤트
-    // -----------------------------
     document.getElementById("nextBtn").addEventListener("click", () => {
         loadPage(currentPage + 1);
     });
 
-    // -----------------------------
-    // Todo 생성 페이지 이동
-    // -----------------------------
     document.getElementById("createBtn").addEventListener("click", () => {
         window.location.href = "/todo/create/";
     });
 
-    // -----------------------------
-    // 페이지 최초 로딩 시 1페이지 데이터 요청
-    // -----------------------------
     loadPage(1);
-
 });
 </script>
 {% endblock %}

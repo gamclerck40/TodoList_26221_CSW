@@ -179,3 +179,9 @@ python manage.py runserver
   ![alt text](image-2.png)
   ![alt text](image-3.png)
   ![alt text](image.png)
+
+## Django(todoList) 9 JWT
+
+- 세션(Session) 방식에서 JWT 방식으로 전환
+  - accessToken, refreshToken 생성 확인 완료
+    ![alt text](image-4.png)
