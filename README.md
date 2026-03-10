@@ -195,4 +195,5 @@ python manage.py runserver
   ![alt text](image-7.png)
 
 - 다른 사람의 글(포스팅) 및 댓글 보이기
+
   ![alt text](image-6.png)
