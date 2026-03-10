@@ -160,9 +160,9 @@ python manage.py runserver
 
 - 기본 CRUD 생성 및 API 설정 완료
 - CRUD에 대한 Test코드 작동 및 모두 정상 동작 확인 완료.
-  ![alt text](media/readme/<스크린샷 2026-03-05 112346.png>)
-  ![alt text](media/readme/<스크린샷 2026-03-05 112355.png>)
-  ![alt text](media/readme/<스크린샷 2026-03-05 112403.png>)
+  ![alt text](media/readme/112346.png)
+  ![alt text](media/readme/112355.png)
+  ![alt text](media/readme/112403.png)
 
 ## Django(todoList) 3 viewsets API로 변경
 
