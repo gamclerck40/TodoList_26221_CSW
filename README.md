@@ -186,7 +186,7 @@ python manage.py runserver
   - accessToken, refreshToken 생성 확인 완료
     ![alt text](media/readme/image-4.png)
 
-## Django(todoList) 10 인터렉티브 추가 및 CSS 추가, 다른사람 글 보이기 로직
+## Django(todoList) 10 ~ 12 인터렉티브 추가 및 CSS 추가, 다른사람 글 보이기 로직
 
 - 좋아요 | 북마크 | 댓글달기 따위의 인터렉티브 추가. -> interaction App 생성
   ![alt text](media/readme/image-5.png)
@@ -197,3 +197,5 @@ python manage.py runserver
 - 다른 사람의 글(포스팅) 및 댓글 보이기
 
   ![alt text](media/readme/image-6.png)
+
+## Django(todoList) 13 Sqlite를 PostgreSQL로 전환
