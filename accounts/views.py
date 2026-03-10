@@ -92,3 +92,40 @@ class SessionLogoutAPIView(APIView):
     def post(self, request):
         logout(request)
         return Response({"detail": "로그아웃(세션 정리)"}, status=status.HTTP_200_OK)
+
+
+class MeAPIView(APIView):
+
+    # ======================================================
+    # permission_classes
+    # ------------------------------------------------------
+    # IsAuthenticated
+    # → 로그인(인증)된 사용자만 이 API에 접근할 수 있도록 설정
+    #
+    # 인증되지 않은 사용자가 요청하면
+    # DRF가 자동으로 401 Unauthorized 응답을 반환한다.
+    # ======================================================
+    permission_classes = [IsAuthenticated]
+
+    # ======================================================
+    # GET 요청 처리
+    # ------------------------------------------------------
+    # 현재 로그인한 사용자의 정보를 반환하는 API
+    #
+    # request.user
+    # → 인증된 사용자 객체(User 모델)
+    # → JWT 토큰 인증이 성공하면 자동으로 채워진다.
+    # ======================================================
+    def get(self, request):
+
+        # Response로 JSON 형태의 사용자 정보를 반환
+        return Response(
+            {
+                # 현재 로그인한 사용자의 고유 ID
+                "id": request.user.id,
+                # 사용자 이름(username)
+                "username": request.user.username,
+                # 사용자 이메일
+                "email": request.user.email,
+            }
+        )

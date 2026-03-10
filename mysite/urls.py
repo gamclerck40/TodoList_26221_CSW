@@ -9,6 +9,7 @@ urlpatterns = [
     path("todo/", include("todo.urls")),
     path("", lambda request: redirect("todo:todo_list")),
     path("", include("accounts.urls")),
+    path("interaction/", include("interaction.urls")),
 ]
 # ✅ [추가] DEBUG일 때만 media 파일을 /media/로 서빙
 if settings.DEBUG:

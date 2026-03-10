@@ -185,3 +185,14 @@ python manage.py runserver
 - 세션(Session) 방식에서 JWT 방식으로 전환
   - accessToken, refreshToken 생성 확인 완료
     ![alt text](image-4.png)
+
+## Django(todoList) 10 인터렉티브 추가 및 CSS 추가, 다른사람 글 보이기 로직
+
+- 좋아요 | 북마크 | 댓글달기 따위의 인터렉티브 추가. -> interaction App 생성
+  ![alt text](image-5.png)
+
+- CSS 적용
+  ![alt text](image-7.png)
+
+- 다른 사람의 글(포스팅) 및 댓글 보이기
+  ![alt text](image-6.png)

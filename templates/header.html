@@ -35,11 +35,12 @@
 <hr>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
   // ✅ [추가됨] 토큰 키 상수화 (다른 페이지들과 통일)
   const ACCESS_KEY = "access_token";
   const REFRESH_KEY = "refresh_token";
+  const USERNAME_KEY = "username";
 
   // ✅ [수정됨] 기존에는 logoutBtn만 찾아서 있으면 클릭 이벤트만 붙였음
   // const btn = document.getElementById("logoutBtn");
@@ -61,26 +62,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ✅ [추가됨] 토큰 있으면: 로그아웃/환영 표시 + 로그인/회원가입 숨김
   if (access) {
-    // ✅ [수정됨] 기존: "{{ request.user.username }}님 환영합니다"를 서버가 출력
-    // ✅ 변경: (3단계에서는 username을 토큰에서 꺼내지 않으므로) 일단 "로그인됨" 표시
-    // (3단계에서는 username까지는 안 뽑아도 됨 — 7단계에서 정리)
-    welcomeEl.textContent = "로그인됨";
+  // ======================================================
+  // 기존 코드 삭제
+  // ------------------------------------------------------
+  // 단순히 "로그인됨"이라고 표시하던 부분을 제거
+  // 이제는 실제 로그인한 사용자 정보를 API로 가져와서
+  // username을 화면에 표시하도록 변경
+  // ======================================================
+  // welcomeEl.textContent = "로그인됨";
+
+
+
+  // ======================================================
+  // 로그인한 사용자 정보 가져오기
+  // ------------------------------------------------------
+  // /me/ API를 호출하여 현재 로그인한 사용자 정보를 조회
+  // (MeAPIView에서 id, username, email을 반환)
+  // ======================================================
+  try {
+
+    // 서버에 사용자 정보 요청
+    const res = await window.api.get("/me/");
+
+    // 응답 데이터에서 사용자 정보 추출
+    const user = res.data;
+
+    // 화면에 "username님 환영합니다" 메시지 표시
+    // 예: "hong님 환영합니다"
+    welcomeEl.textContent = `${user.username}님 환영합니다`;
     welcomeEl.style.display = "inline-block";
     logoutBtn.style.display = "inline-block";
-
     loginLink.style.display = "none";
     signupLink.style.display = "none";
 
-    // ✅ [수정됨] 기존: btn.addEventListener(...) → logoutBtn에 이벤트 부착
-    logoutBtn.addEventListener("click", () => {
-      // ✅ JWT 로그아웃 = 토큰 삭제
-      localStorage.removeItem(ACCESS_KEY); //✅[수정됨]기존 문자열 하드코딩→상수사용
-      localStorage.removeItem(REFRESH_KEY);//✅[수정됨] 기존 문자열 하드코딩→상수사용
+    // ✅ [추가됨] todo_list.js에서 현재 사용자 판별용으로 username 저장
+    localStorage.setItem(USERNAME_KEY, user.username);
 
-      // 로그인 페이지로 이동
-      window.location.href = "/login/";
-    });
+  } catch (err) {
 
+    // ======================================================
+    // 사용자 정보 조회 실패 처리
+    // ------------------------------------------------------
+    // 토큰이 만료되었거나 인증 오류가 발생했을 가능성
+    // ======================================================
+
+    // 콘솔에 오류 출력 (디버깅용)
+    console.error("유저 정보 불러오기 실패", err);
+
+    // 로컬스토리지에 저장된 토큰 제거
+    // → 인증 상태 초기화
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USERNAME_KEY);
+
+    // 로그인 페이지로 이동
+    window.location.href = "/login/";
+
+    return;
+  }
   } else {
     // ✅ [추가됨] 토큰 없으면: 로그인/회원가입 표시 + 로그아웃/환영 숨김
     welcomeEl.style.display = "none";
@@ -89,5 +128,19 @@ document.addEventListener("DOMContentLoaded", () => {
     loginLink.style.display = "inline-block";
     signupLink.style.display = "inline-block";
   }
+
+  // ✅ [추가됨] 로그아웃 버튼 클릭 처리
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await window.api.post("/api/logout/");
+    } catch (err) {
+      console.error("로그아웃 실패", err.response?.data || err.message);
+    } finally {
+      localStorage.removeItem(ACCESS_KEY);
+      localStorage.removeItem(REFRESH_KEY);
+      localStorage.removeItem(USERNAME_KEY);
+      window.location.href = "/login/";
+    }
+  });
 });
 </script>
