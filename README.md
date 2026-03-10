@@ -160,9 +160,9 @@ python manage.py runserver
 
 - 기본 CRUD 생성 및 API 설정 완료
 - CRUD에 대한 Test코드 작동 및 모두 정상 동작 확인 완료.
-  ![alt text](<스크린샷 2026-03-05 112346.png>)
-  ![alt text](<스크린샷 2026-03-05 112355.png>)
-  ![alt text](<스크린샷 2026-03-05 112403.png>)
+  ![alt text](media/readme/<스크린샷 2026-03-05 112346.png>)
+  ![alt text](media/readme/<스크린샷 2026-03-05 112355.png>)
+  ![alt text](media/readme/<스크린샷 2026-03-05 112403.png>)
 
 ## Django(todoList) 3 viewsets API로 변경
 
@@ -173,27 +173,27 @@ python manage.py runserver
 ## Django(todoList) 5 페이지네이션 추가 ~ 8 템플릿 정리
 
 - DRF Pagination 설정 추가
-  ![alt text](image-1.png)
+  ![alt text](media/readme/image-1.png)
 - Django 미디어 설정 추가
 - 'accounts' 앱 추가 생성 -> REST_FRAMEWORK 기본 인증/권한 정책을 로그인 필수 버전으로 변경
-  ![alt text](image-2.png)
-  ![alt text](image-3.png)
-  ![alt text](image.png)
+  ![alt text](media/readme/image-2.png)
+  ![alt text](media/readme/image-3.png)
+  ![alt text](media/readme/image.png)
 
 ## Django(todoList) 9 JWT
 
 - 세션(Session) 방식에서 JWT 방식으로 전환
   - accessToken, refreshToken 생성 확인 완료
-    ![alt text](image-4.png)
+    ![alt text](media/readme/image-4.png)
 
 ## Django(todoList) 10 인터렉티브 추가 및 CSS 추가, 다른사람 글 보이기 로직
 
 - 좋아요 | 북마크 | 댓글달기 따위의 인터렉티브 추가. -> interaction App 생성
-  ![alt text](image-5.png)
+  ![alt text](media/readme/image-5.png)
 
 - CSS 적용
-  ![alt text](image-7.png)
+  ![alt text](media/readme/image-7.png)
 
 - 다른 사람의 글(포스팅) 및 댓글 보이기
 
-  ![alt text](image-6.png)
+  ![alt text](media/readme/image-6.png)
